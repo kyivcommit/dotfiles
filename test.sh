@@ -66,6 +66,7 @@ if [ "${1:-}" = "clone" ]; then
       mkdir -p "$destination/plugins/git" \
         "$destination/plugins/z" \
         "$destination/plugins/vi-mode" \
+        "$destination/plugins/zsh-autosuggestions" \
         "$destination/custom/plugins"
       ;;
   esac
@@ -98,9 +99,11 @@ backup=$(find "$linux_home" -maxdepth 1 -name '.zshrc.backup.*' -type f -print -
 [ -n "$backup" ] || fail "existing .zshrc was not backed up"
 assert_file_contains "$backup" "old config"
 
-for plugin in zsh-autosuggestions zsh-syntax-highlighting fzf-zsh-plugin; do
+for plugin in zsh-syntax-highlighting fzf-zsh-plugin; do
   [ -d "$linux_home/.oh-my-zsh/custom/plugins/$plugin/.git" ] || fail "$plugin was not installed"
 done
+[ ! -e "$linux_home/.oh-my-zsh/custom/plugins/zsh-autosuggestions" ] \
+  || fail "bundled zsh-autosuggestions was cloned as a custom plugin"
 
 assert_file_contains "$fake_log" "apt-get|update"
 assert_file_contains "$fake_log" "apt-get|install -y zsh git ca-certificates"
@@ -114,9 +117,12 @@ assert_file_contains "$fake_log" "pull|$root|pull --ff-only"
 
 run_install "$linux_home" Linux update-plugins
 assert_file_contains "$fake_log" "pull|$linux_home/.oh-my-zsh|pull --ff-only"
-for plugin in zsh-autosuggestions zsh-syntax-highlighting fzf-zsh-plugin; do
+for plugin in zsh-syntax-highlighting fzf-zsh-plugin; do
   assert_file_contains "$fake_log" "pull|$linux_home/.oh-my-zsh/custom/plugins/$plugin|pull --ff-only"
 done
+if grep -F "pull|$linux_home/.oh-my-zsh/custom/plugins/zsh-autosuggestions|" "$fake_log" >/dev/null; then
+  fail "update tried to pull bundled zsh-autosuggestions as a custom plugin"
+fi
 
 mac_home="$test_root/mac-home"
 mkdir -p "$mac_home"

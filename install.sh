@@ -190,6 +190,9 @@ update_plugins() {
 
   plugin_names=$(read_plugins)
   for plugin_name in $plugin_names; do
+    if [ -d "$oh_my_zsh_dir/plugins/$plugin_name" ]; then
+      continue
+    fi
     if plugin_url "$plugin_name" >/dev/null 2>&1; then
       update_checkout "$custom_plugins_dir/$plugin_name"
     fi
