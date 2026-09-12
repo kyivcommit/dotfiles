@@ -34,6 +34,11 @@ cat >"$fake_bin/id" <<'EOF'
 [ "${1:-}" = "-u" ] && printf '0\n'
 EOF
 
+cat >"$fake_bin/dpkg-query" <<'EOF'
+#!/usr/bin/env bash
+exit 1
+EOF
+
 cat >"$fake_bin/apt-get" <<'EOF'
 #!/usr/bin/env bash
 printf 'apt-get|%s\n' "$*" >>"${FAKE_LOG:?}"
