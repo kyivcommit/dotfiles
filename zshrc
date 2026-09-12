@@ -31,8 +31,8 @@ export VISUAL="vim"
 
 export VI_MODE_RESET_PROMPT_ON_MODE_CHANGE=true
 export VI_MODE_SET_CURSOR=true
-export MODE_INDICATOR="%F{red}-N-%f"
-export INSERT_MODE_INDICATOR="%F{green}-I-%f"
+export MODE_INDICATOR="%F%f"
+# export INSERT_MODE_INDICATOR="%F{green}-I-%f"
 export KEYTIMEOUT=1
 
 # Ukrainian layout mapping for vi command mode.
