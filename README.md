@@ -25,6 +25,17 @@ git clone git@github.com:kyivcommit/dotfiles.git ~/.dotfiles
 ~/.dotfiles/install.sh install
 ```
 
+## Make Zsh the default shell
+
+The installer starts Zsh for the current interactive session only. To use Zsh
+automatically on future SSH logins, run this once:
+
+```bash
+chsh -s "$(command -v zsh)"
+```
+
+Log out and reconnect. Without this step, rerun `install.sh` or use
+`exec zsh -l` to start Zsh in the current session.
 
 ## Commands
 
@@ -84,16 +95,6 @@ configured server or Mac with:
 ```bash
 ~/.dotfiles/install.sh update
 ```
-
-The script starts `zsh -l` automatically in an interactive terminal. To make
-Zsh the default login shell permanently, run the optional command printed by
-the installer:
-
-```bash
-chsh -s "$(command -v zsh)"
-```
-
-Log out and reconnect after changing the default shell.
 
 ## fzf first-run message
 
