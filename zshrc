@@ -35,15 +35,5 @@ export MODE_INDICATOR="%F%f"
 # export INSERT_MODE_INDICATOR="%F{green}-I-%f"
 export KEYTIMEOUT=5
 
-# Ukrainian layout mapping for vi command mode.
-function () {
-  local qwerty='qwertyuiop[]asdfghjkl;'\''zxcvbnm,./QWERTYUIOP{}ASDFGHJKL:"ZXCVBNM<>?'
-  local cyrillic='йцукенгшщзхїфівапролджєячсмитьбю.ЙЦУКЕНГШЩЗХЇФІВАПРОЛДЖЄЯЧСМИТЬБЮ,'
-  local i
-  for i in {1..$#qwerty}; do
-    bindkey -s -M vicmd "${cyrillic[$i]}" "${qwerty[$i]}"
-  done
-}
-
 # Secrets, host-specific paths, and aliases stay outside Git.
 [[ -r "$HOME/.zshrc.local" ]] && source "$HOME/.zshrc.local"
