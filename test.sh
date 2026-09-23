@@ -42,6 +42,27 @@ EOF
 cat >"$fake_bin/apt-get" <<'EOF'
 #!/usr/bin/env bash
 printf 'apt-get|%s\n' "$*" >>"${FAKE_LOG:?}"
+if [ "${1:-}" = install ] && [ "${*: -1}" = bat ]; then
+  printf '#!/usr/bin/env bash\n' >"$(dirname "$0")/batcat"
+  chmod +x "$(dirname "$0")/batcat"
+fi
+if [ "${1:-}" = install ] && [ "${*: -1}" = neovim ]; then
+  printf '#!/usr/bin/env bash\n' >"$(dirname "$0")/nvim"
+  chmod +x "$(dirname "$0")/nvim"
+fi
+EOF
+
+cat >"$fake_bin/brew" <<'EOF'
+#!/usr/bin/env bash
+printf 'brew|%s\n' "$*" >>"${FAKE_LOG:?}"
+if [ "${1:-}" = install ] && [ "${2:-}" = bat ]; then
+  printf '#!/usr/bin/env bash\n' >"$(dirname "$0")/bat"
+  chmod +x "$(dirname "$0")/bat"
+fi
+if [ "${1:-}" = install ] && [ "${2:-}" = neovim ]; then
+  printf '#!/usr/bin/env bash\n' >"$(dirname "$0")/nvim"
+  chmod +x "$(dirname "$0")/nvim"
+fi
 EOF
 
 cat >"$fake_bin/zsh" <<'EOF'
@@ -83,12 +104,15 @@ exit 1
 EOF
 
 chmod +x "$fake_bin"/*
+for utility in bash awk cat chmod date dirname ln mkdir mv readlink script; do
+  ln -s "$(command -v "$utility")" "$fake_bin/$utility"
+done
 
 run_install() {
   DOTFILES_HOME=$1 \
   FAKE_UNAME=$2 \
   FAKE_LOG=$fake_log \
-  PATH="$fake_bin:/usr/bin:/bin" \
+  PATH="$fake_bin" \
     "$script" "$3"
 }
 
@@ -112,10 +136,19 @@ done
 
 assert_file_contains "$fake_log" "apt-get|update"
 assert_file_contains "$fake_log" "apt-get|install -y zsh git ca-certificates"
+assert_file_contains "$fake_log" "apt-get|install -y bat"
+assert_file_contains "$fake_log" "apt-get|install -y neovim"
+[ -L "$linux_home/.local/bin/bat" ] || fail "Linux install did not link bat"
+[ "$(readlink "$linux_home/.local/bin/bat")" = "$fake_bin/batcat" ] \
+  || fail "Linux bat link points to wrong executable"
 
 clone_count=$(grep -c '^clone|' "$fake_log")
 run_install "$linux_home" Linux install
 [ "$(grep -c '^clone|' "$fake_log")" -eq "$clone_count" ] || fail "second install cloned repositories again"
+[ "$(grep -c '^apt-get|install -y bat$' "$fake_log")" -eq 1 ] \
+  || fail "second install reinstalled bat"
+[ "$(grep -c '^apt-get|install -y neovim$' "$fake_log")" -eq 1 ] \
+  || fail "second install reinstalled neovim"
 
 run_install "$linux_home" Linux update
 assert_file_contains "$fake_log" "pull|$root|pull --ff-only"
@@ -131,9 +164,18 @@ fi
 
 mac_home="$test_root/mac-home"
 mkdir -p "$mac_home"
+rm "$fake_bin/nvim"
 apt_count=$(grep -c '^apt-get|' "$fake_log")
 run_install "$mac_home" Darwin install
 [ "$(grep -c '^apt-get|' "$fake_log")" -eq "$apt_count" ] || fail "macOS install invoked apt-get"
+assert_file_contains "$fake_log" "brew|install bat"
+assert_file_contains "$fake_log" "brew|install neovim"
+[ ! -e "$mac_home/.local/bin/bat" ] || fail "macOS install created a batcat link"
+run_install "$mac_home" Darwin install
+[ "$(grep -c '^brew|install bat$' "$fake_log")" -eq 1 ] \
+  || fail "second macOS install reinstalled bat"
+[ "$(grep -c '^brew|install neovim$' "$fake_log")" -eq 1 ] \
+  || fail "second macOS install reinstalled neovim"
 
 if run_install "$test_root/unknown-home" FreeBSD install 2>/dev/null; then
   fail "unsupported OS succeeded"
@@ -146,13 +188,13 @@ case "$(/usr/bin/uname -s)" in
     DOTFILES_HOME=$tty_home \
     FAKE_UNAME=Darwin \
     FAKE_LOG=$fake_log \
-    PATH="$fake_bin:/usr/bin:/bin" \
+    PATH="$fake_bin" \
       script -q /dev/null "$script" install </dev/null >/dev/null
     ;;
   Linux)
     printf -v tty_command \
       'DOTFILES_HOME=%q FAKE_UNAME=Darwin FAKE_LOG=%q PATH=%q %q install' \
-      "$tty_home" "$fake_log" "$fake_bin:/usr/bin:/bin" "$script"
+      "$tty_home" "$fake_log" "$fake_bin" "$script"
     script -qec "$tty_command" /dev/null </dev/null >/dev/null
     ;;
   *)

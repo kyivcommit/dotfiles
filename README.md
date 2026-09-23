@@ -17,8 +17,9 @@ git clone git@github.com:kyivcommit/dotfiles.git ~/.dotfiles
 ~/.dotfiles/install.sh install
 ```
 
-On macOS, Git and Zsh must already be available. If Git is missing, install the
-Command Line Tools first with `xcode-select --install`, then run:
+On macOS, Git and Zsh must already be available. Homebrew is needed if `bat` or
+`nvim` is missing. If Git is missing, install the Command Line Tools first with
+`xcode-select --install`, then run:
 
 ```bash
 git clone git@github.com:kyivcommit/dotfiles.git ~/.dotfiles
@@ -43,8 +44,11 @@ Log out and reconnect. Without this step, rerun `install.sh` or use
 ~/.dotfiles/install.sh install
 ```
 
-Installs missing Ubuntu/Debian packages, Oh My Zsh, external plugins, and the
-shared config. Running it again is safe.
+Installs missing Ubuntu/Debian packages, `bat`, `nvim`, Oh My Zsh, external
+plugins, and the shared config. On Ubuntu/Debian, the installer links `batcat` as
+`~/.local/bin/bat`; the shared `zshrc` already adds that directory to `PATH`.
+On macOS, it installs missing `bat` and `nvim` through Homebrew. Running it
+again is safe.
 
 ```bash
 ~/.dotfiles/install.sh update

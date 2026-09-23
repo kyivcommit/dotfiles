@@ -43,13 +43,50 @@ install_dependencies() {
   case "$(uname -s)" in
     Linux)
       require_command apt-get
+      apt_updated=false
       if ! command -v dpkg-query >/dev/null 2>&1 \
         || ! dpkg-query -W zsh git ca-certificates >/dev/null 2>&1; then
         run_apt update
+        apt_updated=true
         run_apt install -y zsh git ca-certificates
+      fi
+      if ! command -v bat >/dev/null 2>&1 \
+        && [ ! -x "$dotfiles_home/.local/bin/bat" ]; then
+        if ! command -v batcat >/dev/null 2>&1; then
+          if [ "$apt_updated" = false ]; then
+            run_apt update
+            apt_updated=true
+          fi
+          run_apt install -y bat
+        fi
+        require_command batcat
+        mkdir -p "$dotfiles_home/.local/bin"
+        if [ -e "$dotfiles_home/.local/bin/bat" ] \
+          || [ -L "$dotfiles_home/.local/bin/bat" ]; then
+          fail "$dotfiles_home/.local/bin/bat exists but is not executable"
+        fi
+        ln -s "$(command -v batcat)" "$dotfiles_home/.local/bin/bat"
+      fi
+      if ! command -v nvim >/dev/null 2>&1; then
+        if [ "$apt_updated" = false ]; then
+          run_apt update
+        fi
+        run_apt install -y neovim
+        require_command nvim
       fi
       ;;
     Darwin)
+      if ! command -v bat >/dev/null 2>&1 \
+        && [ ! -x "$dotfiles_home/.local/bin/bat" ]; then
+        require_command brew
+        brew install bat
+        require_command bat
+      fi
+      if ! command -v nvim >/dev/null 2>&1; then
+        require_command brew
+        brew install neovim
+        require_command nvim
+      fi
       ;;
     *)
       fail "supported operating systems: Ubuntu, Debian, macOS"

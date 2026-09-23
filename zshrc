@@ -35,6 +35,7 @@ source "$ZSH/oh-my-zsh.sh"
 
 export EDITOR="vim"
 export VISUAL="vim"
+alias v="nvim"
 
 export VI_MODE_RESET_PROMPT_ON_MODE_CHANGE=true
 export VI_MODE_SET_CURSOR=true
@@ -42,5 +43,5 @@ export MODE_INDICATOR="%F%f"
 # export INSERT_MODE_INDICATOR="%F{green}-I-%f"
 export KEYTIMEOUT=5
 
-# Secrets, host-specific paths, and aliases stay outside Git.
+# Secrets, host-specific paths, and host-specific aliases stay outside Git.
 [[ -r "$HOME/.zshrc.local" ]] && source "$HOME/.zshrc.local"
