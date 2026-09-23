@@ -1,3 +1,10 @@
+export FZF_PREVIEW_WINDOW='right,50%'
+export FZF_CTRL_T_OPTS="
+  --walker-skip .git,node_modules,target
+  --preview 'bat -n --color=always {}'
+  --bind 'ctrl-/:change-preview-window(down|hidden|)'
+  --no-height"
+
 export ZSH="${ZSH:-$HOME/.oh-my-zsh}"
 
 ZSH_THEME="robbyrussell"
