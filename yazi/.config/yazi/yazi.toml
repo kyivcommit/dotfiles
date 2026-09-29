@@ -1,0 +1,42 @@
+[mgr]
+show_hidden = true
+show_symlink = true
+linemode = "size"
+
+[[plugin.prepend_fetchers]]
+url   = "*"
+run   = "git"
+group = "git"
+
+[[plugin.prepend_fetchers]]
+url   = "*/"
+run   = "git"
+group = "git"
+
+[[plugin.prepend_previewers]]
+mime = "text/*"
+# run  = 'piper -- bat --color=always --paging=never --style=numbers,changes --wrap=character --terminal-width="$w" "$1"'
+run  = 'piper -- bat --color=always --paging=never --style=changes --wrap=character --terminal-width="$w" "$1"'
+
+[opener]
+edit = [
+  { run = "nvim %s", desc = "edit", block = true, for = "unix" },
+]
+view-md = [
+  { run = "nvim -R -M -c 'RenderMarkdown enable' %s", desc = "view", block = true, for = "unix" }
+]
+vlc = [
+  { run = "vlc %s", orphan = true, for = "macos" },
+]
+
+[[open.prepend_rules]]
+url = "*.md"
+use = [ "edit", "view-md" ]
+
+[[open.prepend_rules]]
+mime = "audio/*"
+use = "vlc"
+
+[[open.prepend_rules]]
+mime = "video/*"
+use = "vlc"

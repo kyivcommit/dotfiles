@@ -1,0 +1,17 @@
+[flavor]
+dark = "catppuccin-mocha"
+light = "catppuccin-mocha"
+
+[git]
+untracked_sign = "? "
+unstaged_sign  = "M "
+staged_sign    = "S "
+added_sign     = "A "
+deleted_sign   = "D "
+
+untracked = { fg = "magenta" }
+unstaged  = { fg = "yellow" }
+staged    = { fg = "green" }
+added     = { fg = "green" }
+deleted   = { fg = "red", bold = true }
+

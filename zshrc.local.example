@@ -1,0 +1,4 @@
+# Copy to ~/.zshrc.local. Do not commit the resulting file.
+
+# export API_TOKEN="..."
+# alias project='cd ~/Projects/example'
