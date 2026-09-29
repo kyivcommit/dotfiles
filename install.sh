@@ -39,6 +39,40 @@ run_apt() {
   fi
 }
 
+# LazyVim needs a recent Neovim; apt ships an older one, so Linux gets the
+# upstream release in ~/.local/opt/nvim.
+nvim_min_version=0.11.2
+
+nvim_is_current() {
+  [ -n "${1:-}" ] || return 1
+  nvim_found=$("$1" --version 2>/dev/null | sed -n '1s/^NVIM v//p')
+  [ -n "$nvim_found" ] || return 1
+  [ "$(printf '%s\n%s\n' "$nvim_min_version" "$nvim_found" | sort -V | head -n 1)" = "$nvim_min_version" ]
+}
+
+install_nvim_release() {
+  if nvim_is_current "$dotfiles_home/.local/bin/nvim" \
+    || nvim_is_current "$(command -v nvim || true)"; then
+    return
+  fi
+
+  case "$(uname -m)" in
+    x86_64) nvim_target=nvim-linux-x86_64 ;;
+    aarch64|arm64) nvim_target=nvim-linux-arm64 ;;
+    *) fail "no Neovim release for architecture: $(uname -m)" ;;
+  esac
+  nvim_tmp=$(mktemp -d "${TMPDIR:-/tmp}/nvim.XXXXXX")
+
+  curl -fsSL -o "$nvim_tmp/nvim.tar.gz" \
+    "https://github.com/neovim/neovim/releases/latest/download/$nvim_target.tar.gz"
+  tar -xzf "$nvim_tmp/nvim.tar.gz" -C "$nvim_tmp"
+  mkdir -p "$dotfiles_home/.local/opt" "$dotfiles_home/.local/bin"
+  rm -rf "$dotfiles_home/.local/opt/nvim"
+  mv "$nvim_tmp/$nvim_target" "$dotfiles_home/.local/opt/nvim"
+  ln -sf ../opt/nvim/bin/nvim "$dotfiles_home/.local/bin/nvim"
+  rm -rf "$nvim_tmp"
+}
+
 # yazi is not in apt, so Linux gets the upstream release in ~/.local/bin.
 install_yazi_release() {
   if command -v yazi >/dev/null 2>&1 \
@@ -122,14 +156,7 @@ install_dependencies() {
         fi
         ln -s "$(command -v batcat)" "$dotfiles_home/.local/bin/bat"
       fi
-      if ! command -v nvim >/dev/null 2>&1; then
-        if [ "$apt_updated" = false ]; then
-          run_apt update
-        fi
-        run_apt install -y neovim
-        require_command nvim
-        apt_updated=true
-      fi
+      install_nvim_release
       if ! command -v zoxide >/dev/null 2>&1; then
         if [ "$apt_updated" = false ]; then
           run_apt update
@@ -152,7 +179,7 @@ install_dependencies() {
         brew install bat
         require_command bat
       fi
-      if ! command -v nvim >/dev/null 2>&1; then
+      if ! nvim_is_current "$(command -v nvim || true)"; then
         require_command brew
         brew install neovim
         require_command nvim

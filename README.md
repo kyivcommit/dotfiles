@@ -27,6 +27,11 @@ FiraCode Nerd Font Mono into `~/.local/share/fonts`. Restart the terminal to
 see the icons. SSH-only servers skip the font, because the terminal on the
 connecting machine draws the icons.
 
+LazyVim needs a recent Neovim (0.11.2 or newer). On Ubuntu/Debian the installer
+replaces an older or missing `nvim` with the upstream release in
+`~/.local/opt/nvim`, linked as `~/.local/bin/nvim`. Any other `nvim` in `PATH`
+is left in place; `~/.local/bin` comes first in `PATH` after the shell restarts.
+
 Yazi is not in apt, so on Ubuntu/Debian the installer downloads the upstream
 release (x86_64 or aarch64) into `~/.local/bin`. Yazi plugins and flavors are
 not committed; the installer fetches them from `package.toml` with
@@ -87,7 +92,7 @@ Log out and reconnect. Without this step, rerun `install.sh` or use
 ~/.dotfiles/install.sh install
 ```
 
-Installs missing Ubuntu/Debian packages, `stow`, `bat`, `nvim`, `zoxide`, `yazi`, Oh My Zsh,
+Installs missing Ubuntu/Debian packages, `stow`, `bat`, a current `nvim`, `zoxide`, `yazi`, Oh My Zsh,
 external plugins, and the shared config. On Ubuntu/Debian, the installer links `batcat` as
 `~/.local/bin/bat`; the shared `zsh/.zshrc` already adds that directory to `PATH`.
 On macOS, it installs missing `stow`, `bat`, `nvim`, `zoxide`, and `yazi` through Homebrew. Running it

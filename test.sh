@@ -46,10 +46,6 @@ if [ "${1:-}" = install ] && [ "${*: -1}" = bat ]; then
   printf '#!/usr/bin/env bash\n' >"$(dirname "$0")/batcat"
   chmod +x "$(dirname "$0")/batcat"
 fi
-if [ "${1:-}" = install ] && [ "${*: -1}" = neovim ]; then
-  printf '#!/usr/bin/env bash\n' >"$(dirname "$0")/nvim"
-  chmod +x "$(dirname "$0")/nvim"
-fi
 if [ "${1:-}" = install ] && [ "${*: -1}" = zoxide ]; then
   printf '#!/usr/bin/env bash\n' >"$(dirname "$0")/zoxide"
   chmod +x "$(dirname "$0")/zoxide"
@@ -64,7 +60,7 @@ if [ "${1:-}" = install ] && [ "${2:-}" = bat ]; then
   chmod +x "$(dirname "$0")/bat"
 fi
 if [ "${1:-}" = install ] && [ "${2:-}" = neovim ]; then
-  printf '#!/usr/bin/env bash\n' >"$(dirname "$0")/nvim"
+  printf '#!/usr/bin/env bash\necho "NVIM v0.12.5"\n' >"$(dirname "$0")/nvim"
   chmod +x "$(dirname "$0")/nvim"
 fi
 if [ "${1:-}" = install ] && [ "${2:-}" = yazi ]; then
@@ -117,6 +113,20 @@ cat >"$fake_bin/fc-cache" <<'EOF'
 printf 'fc-cache|%s\n' "$*" >>"${FAKE_LOG:?}"
 EOF
 
+cat >"$fake_bin/tar" <<'EOF'
+#!/usr/bin/env bash
+printf 'tar|%s\n' "$*" >>"${FAKE_LOG:?}"
+destination=
+for argument in "$@"; do
+  [ "${previous:-}" = -C ] && destination=$argument
+  previous=$argument
+done
+mkdir -p "$destination/nvim-linux-x86_64/bin"
+printf '#!/usr/bin/env bash\necho "NVIM v%s"\n' "${FAKE_NVIM_VERSION:-0.12.5}" \
+  >"$destination/nvim-linux-x86_64/bin/nvim"
+chmod +x "$destination/nvim-linux-x86_64/bin/nvim"
+EOF
+
 cat >"$fake_bin/zsh" <<'EOF'
 #!/usr/bin/env bash
 printf 'zsh|%s\n' "$*" >>"${FAKE_LOG:?}"
@@ -156,7 +166,7 @@ exit 1
 EOF
 
 chmod +x "$fake_bin"/*
-for utility in bash awk cat chmod date dirname ln mkdir mv readlink script stow find basename mktemp install rm; do
+for utility in bash awk cat chmod date dirname ln mkdir mv readlink script stow find basename mktemp install rm sed sort head; do
   ln -s "$(command -v "$utility")" "$fake_bin/$utility"
 done
 
@@ -195,7 +205,9 @@ done
 assert_file_contains "$fake_log" "apt-get|update"
 assert_file_contains "$fake_log" "apt-get|install -y zsh git ca-certificates stow curl unzip"
 assert_file_contains "$fake_log" "apt-get|install -y bat"
-assert_file_contains "$fake_log" "apt-get|install -y neovim"
+assert_file_contains "$fake_log" "tar|-xzf"
+[ "$("$linux_home/.local/bin/nvim" --version)" = "NVIM v0.12.5" ] \
+  || fail "Linux install did not install a current Neovim"
 assert_file_contains "$fake_log" "apt-get|install -y zoxide"
 assert_file_contains "$fake_log" "unzip|"
 [ -x "$linux_home/.local/bin/yazi" ] || fail "Linux install did not install yazi"
@@ -211,12 +223,10 @@ assert_file_contains "$fake_log" "fc-cache|-f"
 clone_count=$(grep -c '^clone|' "$fake_log")
 run_install "$linux_home" Linux install
 [ "$(grep -c '^clone|' "$fake_log")" -eq "$clone_count" ] || fail "second install cloned repositories again"
-[ "$(grep -c '^curl|' "$fake_log")" -eq 2 ] \
-  || fail "second install downloaded yazi or the font again"
+[ "$(grep -c '^curl|' "$fake_log")" -eq 3 ] \
+  || fail "second install downloaded yazi, the font, or Neovim again"
 [ "$(grep -c '^apt-get|install -y bat$' "$fake_log")" -eq 1 ] \
   || fail "second install reinstalled bat"
-[ "$(grep -c '^apt-get|install -y neovim$' "$fake_log")" -eq 1 ] \
-  || fail "second install reinstalled neovim"
 
 run_install "$linux_home" Linux update
 assert_file_contains "$fake_log" "pull|$root|pull --ff-only"
@@ -229,6 +239,15 @@ done
 if grep -F "pull|$linux_home/.oh-my-zsh/custom/plugins/zsh-autosuggestions|" "$fake_log" >/dev/null; then
   fail "update tried to pull bundled zsh-autosuggestions as a custom plugin"
 fi
+
+old_nvim_home="$test_root/old-nvim-home"
+mkdir -p "$old_nvim_home"
+printf '#!/usr/bin/env bash\necho "NVIM v0.9.5"\n' >"$fake_bin/nvim"
+chmod +x "$fake_bin/nvim"
+run_install "$old_nvim_home" Linux install
+[ "$("$old_nvim_home/.local/bin/nvim" --version)" = "NVIM v0.12.5" ] \
+  || fail "outdated Neovim was not replaced"
+rm "$fake_bin/nvim"
 
 extra_dir="$test_root/extra"
 mkdir -p "$extra_dir/extra-pkg/.config/extra"
