@@ -321,8 +321,15 @@ apply_config() {
       done < <(find "$package_dir" -type f)
 
       # No folding keeps app-written files (plugins, logs) out of the repository.
-      stow --dir "$stow_dir" --target "$dotfiles_home" --no-folding \
-        --restow "$package"
+      # A package with a .stow-fold file is linked as a whole directory instead,
+      # for apps that replace symlinked files when they save (Karabiner-Elements).
+      stow_folding=--no-folding
+      if [ -e "$package_dir/.stow-fold" ]; then
+        stow_folding=
+      fi
+      # shellcheck disable=SC2086 # empty means Stow's default folding
+      stow --dir "$stow_dir" --target "$dotfiles_home" $stow_folding \
+        --ignore='\.stow-fold' --restow "$package"
     done
   done
 }

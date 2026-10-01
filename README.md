@@ -48,6 +48,12 @@ stow --dir ~/.dotfiles --target ~ --no-folding --restow tmux
 To move an existing config into a package, `mv` it into the package directory
 first. Use `stow --dir ~/.dotfiles --target ~ -D tmux` to remove the links.
 
+Some apps replace a symlinked file with a regular file when they save, which
+breaks the link (Karabiner-Elements does this with `karabiner.json`). Put an
+empty `.stow-fold` file in the root of such a package and Stow links the whole
+directory instead. Move any existing directory aside before the first run, and
+add a `.gitignore` for files the app writes there.
+
 ## Extra packages
 
 Set `DOTFILES_EXTRA_DIR` to a second directory of Stow packages, for example a

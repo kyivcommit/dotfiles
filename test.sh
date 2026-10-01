@@ -252,12 +252,18 @@ rm "$fake_bin/nvim"
 extra_dir="$test_root/extra"
 mkdir -p "$extra_dir/extra-pkg/.config/extra"
 printf 'extra\n' >"$extra_dir/extra-pkg/.config/extra/config"
+mkdir -p "$extra_dir/fold-pkg/.config/fold"
+: >"$extra_dir/fold-pkg/.stow-fold"
+printf 'fold\n' >"$extra_dir/fold-pkg/.config/fold/config"
 extra_home="$test_root/extra-home"
 mkdir -p "$extra_home"
 DOTFILES_EXTRA_DIR="$extra_dir" run_install "$extra_home" Linux install
 [ "$extra_home/.config/extra/config" -ef "$extra_dir/extra-pkg/.config/extra/config" ] \
   || fail "extra directory package was not linked"
 [ "$extra_home/.zshrc" -ef "$root/zsh/.zshrc" ] || fail "extra install skipped main packages"
+[ -L "$extra_home/.config/fold" ] || fail ".stow-fold package was not linked as a directory"
+[ ! -e "$extra_home/.stow-fold" ] || fail ".stow-fold marker was linked"
+[ ! -L "$extra_home/.config/extra" ] || fail "package without .stow-fold was folded"
 
 headless_home="$test_root/headless-home"
 mkdir -p "$headless_home"
