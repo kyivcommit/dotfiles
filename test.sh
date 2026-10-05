@@ -203,7 +203,7 @@ done
   || fail "bundled zsh-autosuggestions was cloned as a custom plugin"
 
 assert_file_contains "$fake_log" "apt-get|update"
-assert_file_contains "$fake_log" "apt-get|install -y zsh git ca-certificates stow curl unzip"
+assert_file_contains "$fake_log" "apt-get|install -y zsh git ca-certificates stow curl unzip file"
 assert_file_contains "$fake_log" "apt-get|install -y bat"
 assert_file_contains "$fake_log" "tar|-xzf"
 [ "$("$linux_home/.local/bin/nvim" --version)" = "NVIM v0.12.5" ] \

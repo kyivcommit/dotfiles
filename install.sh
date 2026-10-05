@@ -134,10 +134,10 @@ install_dependencies() {
       require_command apt-get
       apt_updated=false
       if ! command -v dpkg-query >/dev/null 2>&1 \
-        || ! dpkg-query -W zsh git ca-certificates stow curl unzip >/dev/null 2>&1; then
+        || ! dpkg-query -W zsh git ca-certificates stow curl unzip file >/dev/null 2>&1; then
         run_apt update
         apt_updated=true
-        run_apt install -y zsh git ca-certificates stow curl unzip
+        run_apt install -y zsh git ca-certificates stow curl unzip file
       fi
       if ! command -v bat >/dev/null 2>&1 \
         && [ ! -x "$dotfiles_home/.local/bin/bat" ]; then
