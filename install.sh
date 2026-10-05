@@ -133,11 +133,21 @@ install_dependencies() {
     Linux)
       require_command apt-get
       apt_updated=false
-      if ! command -v dpkg-query >/dev/null 2>&1 \
-        || ! dpkg-query -W zsh git ca-certificates stow curl unzip file >/dev/null 2>&1; then
+      # dpkg-query -W succeeds for packages that are known but not installed,
+      # so check the install status of each package.
+      missing_packages=
+      for apt_package in zsh git ca-certificates stow curl unzip file; do
+        if ! command -v dpkg-query >/dev/null 2>&1 \
+          || ! dpkg-query -W -f='${Status}' "$apt_package" 2>/dev/null \
+            | grep -q 'install ok installed'; then
+          missing_packages="$missing_packages $apt_package"
+        fi
+      done
+      if [ -n "$missing_packages" ]; then
         run_apt update
         apt_updated=true
-        run_apt install -y zsh git ca-certificates stow curl unzip file
+        # shellcheck disable=SC2086 # the list is split on purpose
+        run_apt install -y $missing_packages
       fi
       if ! command -v bat >/dev/null 2>&1 \
         && [ ! -x "$dotfiles_home/.local/bin/bat" ]; then

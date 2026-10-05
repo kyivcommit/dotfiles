@@ -166,7 +166,7 @@ exit 1
 EOF
 
 chmod +x "$fake_bin"/*
-for utility in bash awk cat chmod date dirname ln mkdir mv readlink script stow find basename mktemp install rm sed sort head; do
+for utility in bash awk cat chmod date dirname ln mkdir mv readlink script stow find basename mktemp install rm sed sort head grep; do
   ln -s "$(command -v "$utility")" "$fake_bin/$utility"
 done
 
