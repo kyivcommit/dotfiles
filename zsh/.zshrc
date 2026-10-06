@@ -1,9 +1,22 @@
 export FZF_PREVIEW_WINDOW='right,50%'
+if command -v bat >/dev/null; then
+  FZF_PREVIEWER="bat -n --color=always {}"
+else
+  FZF_PREVIEWER="cat {}"
+fi
 export FZF_CTRL_T_OPTS="
-  --walker-skip .git,node_modules,target
-  --preview 'bat -n --color=always {}'
+  --walker-skip .git,node_modules,target,dist,.venv,__pycache__
+  --preview '$FZF_PREVIEWER'
   --bind 'ctrl-/:change-preview-window(down|hidden|)'
   --no-height"
+
+umask 022
+
+# History: shared across sessions, no dupes
+HISTFILE=~/.zsh_history
+HISTSIZE=50000
+SAVEHIST=10000
+setopt SHARE_HISTORY HIST_IGNORE_ALL_DUPS HIST_REDUCE_BLANKS
 
 export ZSH="${ZSH:-$HOME/.oh-my-zsh}"
 
@@ -43,7 +56,9 @@ plugins=(
 source "$ZSH/oh-my-zsh.sh"
 
 # Secrets, host-specific paths, and host-specific aliases stay outside Git.
-[[ -r "$HOME/.zshrc.local" ]] && source "$HOME/.zshrc.local"
+if [[ -r "$HOME/.zshrc.local" ]]; then
+  source "$HOME/.zshrc.local" || echo "zshrc: failed to source ~/.zshrc.local"
+fi
 
 command -v zoxide >/dev/null && eval "$(zoxide init zsh)"
 
