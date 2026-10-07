@@ -22,10 +22,11 @@ the rest of the shell setup lives in `.zshrc`.
 
 Stow runs with `--no-folding`, so it links individual files and keeps real
 directories. Files that apps write next to the config, such as plugins, logs,
-or sessions, stay out of the repository. LazyVim's `lazy-lock.json` is not
-tracked for the same reason: Lazy rewrites it whenever plugins change, and a
-tracked copy would break `git pull`. Each machine keeps its own (gitignored)
-lockfile; Lazy syncs plugins to it on the next start.
+or sessions, stay out of the repository — except LazyVim's `lazy-lock.json`,
+which is tracked so every machine gets the same plugin pins. Lazy rewrites it
+locally whenever plugins change, so `install.sh update` discards that local
+churn before pulling: the repository pins always win and Lazy syncs the
+plugins on the next start.
 
 On Ubuntu/Debian machines with a desktop session, the installer also downloads
 FiraCode Nerd Font Mono into `~/.local/share/fonts`. Restart the terminal to

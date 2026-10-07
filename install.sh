@@ -385,6 +385,9 @@ case "$command_name" in
     ;;
   update)
     require_command git
+    # Lazy rewrites lazy-lock.json when plugins change; drop the local churn
+    # so the pull is never blocked and the repository pins always win.
+    git -C "$dotfiles_dir" checkout -- nvim/.config/nvim/lazy-lock.json 2>/dev/null || true
     git -C "$dotfiles_dir" pull --ff-only
     exec "$dotfiles_dir/install.sh" install
     ;;

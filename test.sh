@@ -140,7 +140,7 @@ set -eu
 if [ "${1:-}" = "-C" ]; then
   repo=$2
   shift 2
-  printf 'pull|%s|%s\n' "$repo" "$*" >>"${FAKE_LOG:?}"
+  printf '%s|%s|%s\n' "${1:-pull}" "$repo" "$*" >>"${FAKE_LOG:?}"
   exit 0
 fi
 
@@ -232,6 +232,7 @@ run_install "$linux_home" Linux install
   || fail "second install reinstalled bat"
 
 run_install "$linux_home" Linux update
+assert_file_contains "$fake_log" "checkout|$root|checkout -- nvim/.config/nvim/lazy-lock.json"
 assert_file_contains "$fake_log" "pull|$root|pull --ff-only"
 
 run_install "$linux_home" Linux update-plugins
