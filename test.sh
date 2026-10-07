@@ -189,6 +189,9 @@ run_install "$linux_home" Linux install
 
 [ -L "$linux_home/.zshrc" ] || fail "install did not create .zshrc symlink"
 [ "$linux_home/.zshrc" -ef "$root/zsh/.zshrc" ] || fail "symlink points to wrong config"
+[ -L "$linux_home/.zshenv" ] || fail "install did not create .zshenv symlink"
+[ "$linux_home/.zshenv" -ef "$root/zsh/.zshenv" ] || fail ".zshenv symlink points to wrong config"
+assert_file_contains "$root/zsh/.zshenv" "EDITOR=nvim"
 [ "$linux_home/.config/nvim/init.lua" -ef "$root/nvim/.config/nvim/init.lua" ] \
   || fail "install did not link nested package files"
 [ ! -L "$linux_home/.config/nvim" ] || fail "stow folded a package directory"
@@ -318,3 +321,4 @@ esac
 assert_file_contains "$fake_log" "zsh|-l"
 
 printf 'PASS: install, update, plugin update, idempotency, Linux/macOS branches\n'
+

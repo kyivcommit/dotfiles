@@ -15,13 +15,12 @@ umask 022
 # History: shared across sessions, no dupes
 HISTFILE=~/.zsh_history
 HISTSIZE=50000
-SAVEHIST=10000
-setopt SHARE_HISTORY HIST_IGNORE_ALL_DUPS HIST_REDUCE_BLANKS
+SAVEHIST=50000
+setopt SHARE_HISTORY HIST_IGNORE_ALL_DUPS HIST_REDUCE_BLANKS \
+    EXTENDED_HISTORY HIST_IGNORE_SPACE HIST_VERIFY \
+    HIST_EXPIRE_DUPS_FIRST HIST_FIND_NO_DUPS
 
 export ZSH="${ZSH:-$HOME/.oh-my-zsh}"
-
-export EDITOR=nvim
-export VISUAL=nvim
 
 ZSH_THEME="robbyrussell"
 
@@ -53,7 +52,12 @@ plugins=(
 # # export INSERT_MODE_INDICATOR="%F{green}-I-%f"
 # export KEYTIMEOUT=5
 
-source "$ZSH/oh-my-zsh.sh"
+# Falls back to a warning instead of a broken shell if oh-my-zsh is missing.
+if [[ -r "$ZSH/oh-my-zsh.sh" ]]; then
+  source "$ZSH/oh-my-zsh.sh"
+else
+  echo "zshrc: oh-my-zsh not found in $ZSH"
+fi
 
 # Secrets, host-specific paths, and host-specific aliases stay outside Git.
 if [[ -r "$HOME/.zshrc.local" ]]; then

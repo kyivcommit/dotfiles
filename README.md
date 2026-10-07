@@ -10,11 +10,13 @@ starts a Zsh login shell when run from an interactive terminal.
 
 Each top-level directory is a Stow package that mirrors `~`. For example,
 `zsh/.zshrc` is linked as `~/.zshrc` and `nvim/.config/nvim/init.lua` as
-`~/.config/nvim/init.lua`.
+`~/.config/nvim/init.lua`. `zsh/.zshenv` sets `EDITOR`/`VISUAL`, which every
+shell reads (including non-interactive ones such as cron or `ssh host cmd`);
+the rest of the shell setup lives in `.zshrc`.
 
 | Package   | Links                                  |
 |-----------|----------------------------------------|
-| `zsh`     | `~/.zshrc`                             |
+| `zsh`     | `~/.zshrc`, `~/.zshenv`                |
 | `nvim`    | `~/.config/nvim` (LazyVim)             |
 | `yazi`    | `~/.config/yazi/*.toml`, `init.lua`    |
 
@@ -124,7 +126,6 @@ Running `install.sh` without a command is equivalent to `install`.
 The shared `zsh/.zshrc` currently enables:
 
 - `git`
-- `vi-mode`
 - `zsh-autosuggestions`
 - `fzf-zsh-plugin`
 - `zsh-syntax-highlighting`
@@ -138,6 +139,7 @@ Keep secrets, local paths, and machine-specific aliases outside the repository:
 
 ```bash
 cp ~/.dotfiles/zshrc.local.example ~/.zshrc.local
+chmod 600 ~/.zshrc.local
 $EDITOR ~/.zshrc.local
 ```
 
