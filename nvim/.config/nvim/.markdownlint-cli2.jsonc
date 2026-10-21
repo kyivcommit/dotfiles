@@ -1,0 +1,6 @@
+{
+  // Long prose lines are fine (disable MD013 line-length).
+  "config": {
+    "MD013": false
+  }
+}

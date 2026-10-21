@@ -67,3 +67,6 @@ fi
 command -v zoxide >/dev/null && eval "$(zoxide init zsh)"
 
 alias v="nvim"
+
+# Hermes Agent command
+case ":$PATH:" in *":$HOME/.local/bin:"*) ;; *) export PATH="$HOME/.local/bin:$PATH" ;; esac
