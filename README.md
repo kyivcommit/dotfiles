@@ -179,5 +179,9 @@ Run the portable integration test with:
 ./test.sh
 ```
 
+`./test.sh --full` also starts the real nvim config with the locked plugin
+versions in a temporary directory. It needs network access and takes a few
+minutes.
+
 The test uses temporary directories and fake system commands. It does not
 install packages or modify your real shell configuration.

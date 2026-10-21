@@ -61,8 +61,39 @@ sys.exit(bad)
 PY
 }
 
+# ./test.sh --full also boots the real nvim config with the locked plugin
+# versions in a throwaway XDG tree. It needs network access and takes minutes.
+check_nvim_boot() {
+  command -v nvim >/dev/null 2>&1 || fail "--full needs nvim"
+  boot_root=$(mktemp -d "${TMPDIR:-/tmp}/nvim-boot.XXXXXX")
+  mkdir -p "$boot_root/config"
+  # A copy, so Lazy cannot rewrite lazy-lock.json inside the repository.
+  cp -R "$root/nvim/.config/nvim" "$boot_root/config/nvim"
+
+  boot_log="$boot_root/boot.log"
+  export XDG_CONFIG_HOME="$boot_root/config" XDG_DATA_HOME="$boot_root/data" \
+    XDG_STATE_HOME="$boot_root/state" XDG_CACHE_HOME="$boot_root/cache"
+  # The first runs install plugins and tools (mason, treesitter) and race with
+  # their own async installers, so only the last run is checked.
+  nvim --headless "+Lazy! restore" +qa >/dev/null 2>&1 || true
+  nvim --headless +qa >/dev/null 2>&1 || true
+  # Lazy keeps spec-loading errors (a broken plugin file) in spec.notifs.
+  nvim --headless "+lua local n = require('lazy.core.config').spec.notifs; print(#n == 0 and 'boot-ok' or vim.inspect(n))" +qa >"$boot_log" 2>&1 || true
+  unset XDG_CONFIG_HOME XDG_DATA_HOME XDG_STATE_HOME XDG_CACHE_HOME
+
+  if grep -E 'Error|E[0-9]{3,4}:|Failed' "$boot_log" >&2 || ! grep -q boot-ok "$boot_log"; then
+    fail "nvim did not start cleanly (log: $boot_log)"
+  fi
+  rm -rf "$boot_root"
+  echo 'PASS: nvim boots with the locked plugins'
+}
+
 check_lua
 check_data_files
+
+if [ "${1:-}" = --full ]; then
+  check_nvim_boot
+fi
 
 test_root=$(mktemp -d "${TMPDIR:-/tmp}/dotfiles-test.XXXXXX")
 trap 'rm -rf "$test_root"' EXIT HUP INT TERM
