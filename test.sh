@@ -16,6 +16,54 @@ assert_file_contains() {
 [ -x "$script" ] || fail "install.sh is missing or not executable"
 [ -f "$root/zsh/.zshrc" ] || fail "zsh/.zshrc is missing"
 
+# Config syntax checks. Each one is skipped when its tool is missing.
+check_lua() {
+  command -v nvim >/dev/null 2>&1 || { echo 'skip: nvim not found, Lua syntax not checked'; return; }
+  lua_check=$(mktemp "${TMPDIR:-/tmp}/lua-check.XXXXXX")
+  cat >"$lua_check" <<'LUA'
+local failed = false
+for _, file in ipairs(_G.arg) do
+  local chunk, err = loadfile(file)
+  if not chunk then
+    io.stderr:write(err .. "\n")
+    failed = true
+  end
+end
+os.exit(failed and 1 or 0)
+LUA
+  # shellcheck disable=SC2046 # file names have no spaces
+  nvim --headless -l "$lua_check" $(find "$root/nvim" -name '*.lua') \
+    || { rm -f "$lua_check"; fail "Lua syntax error in nvim config"; }
+  rm -f "$lua_check"
+}
+
+check_data_files() {
+  command -v python3 >/dev/null 2>&1 || { echo 'skip: python3 not found, TOML/JSON not checked'; return; }
+  python3 - "$root" <<'PY' || fail "invalid TOML or JSON in a config file"
+import json, pathlib, sys
+try:
+    import tomllib
+except ImportError:
+    tomllib = None
+bad = 0
+for path in pathlib.Path(sys.argv[1]).rglob("*"):
+    if ".git" in path.parts or not path.is_file():
+        continue
+    try:
+        if path.suffix == ".json":
+            json.loads(path.read_text())
+        elif path.suffix == ".toml" and tomllib:
+            tomllib.loads(path.read_text())
+    except Exception as error:
+        print(f"{path}: {error}", file=sys.stderr)
+        bad = 1
+sys.exit(bad)
+PY
+}
+
+check_lua
+check_data_files
+
 test_root=$(mktemp -d "${TMPDIR:-/tmp}/dotfiles-test.XXXXXX")
 trap 'rm -rf "$test_root"' EXIT HUP INT TERM
 
@@ -321,5 +369,5 @@ case "$(/usr/bin/uname -s)" in
 esac
 assert_file_contains "$fake_log" "zsh|-l"
 
-printf 'PASS: install, update, plugin update, idempotency, Linux/macOS branches\n'
+printf 'PASS: config syntax, install, update, plugin update, idempotency, Linux/macOS branches\n'
 
