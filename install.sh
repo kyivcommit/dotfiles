@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 set -eu
+# Oh My Zsh refuses completions from group-writable directories.
+umask 022
 
 dotfiles_dir=$(CDPATH='' cd -- "$(dirname -- "$0")" && pwd -P)
 dotfiles_home=${DOTFILES_HOME:-$HOME}
@@ -39,9 +41,29 @@ run_apt() {
   fi
 }
 
+# Only the base packages are required. An old release may not ship the rest,
+# and sudo cannot prompt in a non-interactive session, so those installs are
+# best effort. apt-get update runs once; only a successful update enables them.
+apt_tried=false
+apt_ready=false
+
+install_apt_packages() {
+  [ "$(id -u)" -eq 0 ] || command -v sudo >/dev/null 2>&1 || return 1
+  if [ "$apt_tried" = false ]; then
+    apt_tried=true
+    if run_apt update; then
+      apt_ready=true
+    fi
+  fi
+  [ "$apt_ready" = true ] || return 1
+  run_apt install -y "$@"
+}
+
 # LazyVim needs a recent Neovim; apt ships an older one, so Linux gets the
 # upstream release in ~/.local/opt/nvim.
 nvim_min_version=0.11.2
+# Ubuntu 18.04 has no bat package, so Linux can fall back to this static build.
+bat_version=v0.26.1
 
 nvim_is_current() {
   [ -n "${1:-}" ] || return 1
@@ -71,9 +93,37 @@ install_nvim_release() {
   mv "$nvim_tmp/$nvim_target" "$dotfiles_home/.local/opt/nvim"
   ln -sf ../opt/nvim/bin/nvim "$dotfiles_home/.local/bin/nvim"
   rm -rf "$nvim_tmp"
+  if ! "$dotfiles_home/.local/bin/nvim" --version >/dev/null 2>&1; then
+    rm -f "$dotfiles_home/.local/bin/nvim"
+    rm -rf "$dotfiles_home/.local/opt/nvim"
+    say "warning: Neovim release needs a newer glibc; skipped"
+  fi
 }
 
-# yazi is not in apt, so Linux gets the upstream release in ~/.local/bin.
+# The static musl build runs on releases that have no bat package, and on ones
+# whose glibc is too old for the regular release binaries.
+install_bat_release() {
+  case "$(uname -m)" in
+    x86_64) bat_arch=x86_64 ;;
+    aarch64|arm64) bat_arch=aarch64 ;;
+    *) return 1 ;;
+  esac
+  bat_asset="bat-$bat_version-$bat_arch-unknown-linux-musl"
+  bat_tmp=$(mktemp -d "${TMPDIR:-/tmp}/bat.XXXXXX")
+
+  if curl -fsSL -o "$bat_tmp/$bat_asset.tar.gz" \
+      "https://github.com/sharkdp/bat/releases/download/$bat_version/$bat_asset.tar.gz" \
+    && tar -xzf "$bat_tmp/$bat_asset.tar.gz" -C "$bat_tmp"; then
+    mkdir -p "$dotfiles_home/.local/bin"
+    install -m 755 "$bat_tmp/$bat_asset/bat" "$dotfiles_home/.local/bin/bat"
+  fi
+  rm -rf "$bat_tmp"
+  # The download is optional, so report success through what landed on disk.
+  [ -x "$dotfiles_home/.local/bin/bat" ]
+}
+
+# yazi is not in apt, so Linux gets the upstream release in ~/.local/bin. The
+# musl build runs on releases with an old glibc.
 install_yazi_release() {
   if command -v yazi >/dev/null 2>&1 \
     || [ -x "$dotfiles_home/.local/bin/yazi" ]; then
@@ -85,7 +135,7 @@ install_yazi_release() {
     aarch64|arm64) yazi_arch=aarch64 ;;
     *) fail "no yazi release for architecture: $(uname -m)" ;;
   esac
-  yazi_target="yazi-$yazi_arch-unknown-linux-gnu"
+  yazi_target="yazi-$yazi_arch-unknown-linux-musl"
   yazi_tmp=$(mktemp -d "${TMPDIR:-/tmp}/yazi.XXXXXX")
 
   curl -fsSL -o "$yazi_tmp/yazi.zip" \
@@ -132,7 +182,6 @@ install_dependencies() {
   case "$(uname -s)" in
     Linux)
       require_command apt-get
-      apt_updated=false
       # dpkg-query -W succeeds for packages that are known but not installed,
       # so check the install status of each package.
       missing_packages=
@@ -144,35 +193,30 @@ install_dependencies() {
         fi
       done
       if [ -n "$missing_packages" ]; then
-        run_apt update
-        apt_updated=true
         # shellcheck disable=SC2086 # the list is split on purpose
-        run_apt install -y $missing_packages
+        install_apt_packages $missing_packages \
+          || fail "cannot install:$missing_packages"
       fi
       if ! command -v bat >/dev/null 2>&1 \
         && [ ! -x "$dotfiles_home/.local/bin/bat" ]; then
-        if ! command -v batcat >/dev/null 2>&1; then
-          if [ "$apt_updated" = false ]; then
-            run_apt update
-            apt_updated=true
-          fi
-          run_apt install -y bat
-        fi
-        require_command batcat
-        mkdir -p "$dotfiles_home/.local/bin"
         if [ -e "$dotfiles_home/.local/bin/bat" ] \
           || [ -L "$dotfiles_home/.local/bin/bat" ]; then
           fail "$dotfiles_home/.local/bin/bat exists but is not executable"
         fi
-        ln -s "$(command -v batcat)" "$dotfiles_home/.local/bin/bat"
+        if ! command -v batcat >/dev/null 2>&1; then
+          install_apt_packages bat || true
+        fi
+        if command -v batcat >/dev/null 2>&1; then
+          mkdir -p "$dotfiles_home/.local/bin"
+          ln -s "$(command -v batcat)" "$dotfiles_home/.local/bin/bat"
+        elif ! command -v bat >/dev/null 2>&1; then
+          install_bat_release \
+            || say "warning: bat is unavailable; install it later"
+        fi
       fi
       install_nvim_release
       if ! command -v zoxide >/dev/null 2>&1; then
-        if [ "$apt_updated" = false ]; then
-          run_apt update
-        fi
-        run_apt install -y zoxide
-        require_command zoxide
+        install_apt_packages zoxide || say "warning: zoxide is unavailable; skipped"
       fi
       install_yazi_release
       install_nerd_font

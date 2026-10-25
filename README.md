@@ -105,8 +105,10 @@ Log out and reconnect. Without this step, rerun `install.sh` or use
 ```
 
 Installs missing Ubuntu/Debian packages, `stow`, `bat`, a current `nvim`, `zoxide`, `yazi`, Oh My Zsh,
-external plugins, and the shared config. On Ubuntu/Debian, the installer links `batcat` as
-`~/.local/bin/bat`; the shared `zsh/.zshrc` already adds that directory to `PATH`.
+external plugins, and the shared config. Packages the release does not ship, and release builds that
+need a newer glibc than it has, are skipped with a warning. On Ubuntu/Debian, the installer links
+`batcat` as `~/.local/bin/bat`, or downloads the static `bat` build when there is no package; the
+shared `zsh/.zshrc` already adds that directory to `PATH`.
 On macOS, it installs missing `stow`, `bat`, `nvim`, `zoxide`, and `yazi` through Homebrew. Running it
 again is safe.
 

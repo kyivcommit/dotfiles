@@ -121,6 +121,11 @@ EOF
 cat >"$fake_bin/apt-get" <<'EOF'
 #!/usr/bin/env bash
 printf 'apt-get|%s\n' "$*" >>"${FAKE_LOG:?}"
+if [ "${1:-}" = install ] && [ "${*: -1}" = bat ] \
+  && [ "${FAKE_APT_NO_BAT:-}" = 1 ]; then
+  printf 'E: Unable to locate package bat\n' >&2
+  exit 100
+fi
 if [ "${1:-}" = install ] && [ "${*: -1}" = bat ]; then
   printf '#!/usr/bin/env bash\n' >"$(dirname "$0")/batcat"
   chmod +x "$(dirname "$0")/batcat"
@@ -177,7 +182,7 @@ case "$*" in
     exit 0
     ;;
 esac
-directory="$destination/yazi-x86_64-unknown-linux-gnu"
+directory="$destination/yazi-x86_64-unknown-linux-musl"
 mkdir -p "$directory"
 printf '#!/usr/bin/env bash\n' >"$directory/yazi"
 cat >"$directory/ya" <<'INNER'
@@ -196,14 +201,27 @@ cat >"$fake_bin/tar" <<'EOF'
 #!/usr/bin/env bash
 printf 'tar|%s\n' "$*" >>"${FAKE_LOG:?}"
 destination=
+archive=
 for argument in "$@"; do
   [ "${previous:-}" = -C ] && destination=$argument
+  case "$argument" in *.tar.gz) archive=$argument ;; esac
   previous=$argument
 done
-mkdir -p "$destination/nvim-linux-x86_64/bin"
-printf '#!/usr/bin/env bash\necho "NVIM v%s"\n' "${FAKE_NVIM_VERSION:-0.12.5}" \
-  >"$destination/nvim-linux-x86_64/bin/nvim"
-chmod +x "$destination/nvim-linux-x86_64/bin/nvim"
+case "$archive" in
+  */bat-*)
+    directory=${archive##*/}
+    directory="$destination/${directory%.tar.gz}"
+    mkdir -p "$directory"
+    printf '#!/usr/bin/env bash\n' >"$directory/bat"
+    chmod +x "$directory/bat"
+    ;;
+  *)
+    mkdir -p "$destination/nvim-linux-x86_64/bin"
+    printf '#!/usr/bin/env bash\nif [ "${FAKE_NVIM_BROKEN:-}" = 1 ] && [ "${1:-}" = --version ]; then exit 1; fi\necho "NVIM v%s"\n' "${FAKE_NVIM_VERSION:-0.12.5}" \
+      >"$destination/nvim-linux-x86_64/bin/nvim"
+    chmod +x "$destination/nvim-linux-x86_64/bin/nvim"
+    ;;
+esac
 EOF
 
 cat >"$fake_bin/zsh" <<'EOF'
@@ -332,6 +350,28 @@ run_install "$old_nvim_home" Linux install
   || fail "outdated Neovim was not replaced"
 rm "$fake_bin/nvim"
 
+# Ubuntu 18.04 has no bat package: install must fall back to the static build
+# and still stow the config afterwards.
+rm -f "$fake_bin/batcat"
+bionic_home="$test_root/bionic-home"
+mkdir -p "$bionic_home"
+FAKE_APT_NO_BAT=1 run_install "$bionic_home" Linux install
+[ -x "$bionic_home/.local/bin/bat" ] || fail "old release install did not download bat"
+assert_file_contains "$fake_log" "-unknown-linux-musl.tar.gz"
+[ "$bionic_home/.zshrc" -ef "$root/zsh/.zshrc" ] \
+  || fail "old release install stopped before stowing config"
+
+# A release that needs a newer glibc must be removed instead of left broken.
+broken_nvim_home="$test_root/broken-nvim-home"
+mkdir -p "$broken_nvim_home"
+FAKE_NVIM_BROKEN=1 run_install "$broken_nvim_home" Linux install
+[ ! -e "$broken_nvim_home/.local/bin/nvim" ] \
+  && [ ! -L "$broken_nvim_home/.local/bin/nvim" ] \
+  || fail "broken Neovim was left on PATH"
+[ ! -e "$broken_nvim_home/.local/opt/nvim" ] || fail "broken Neovim release was left unpacked"
+[ "$broken_nvim_home/.zshrc" -ef "$root/zsh/.zshrc" ] \
+  || fail "broken Neovim stopped the install"
+
 extra_dir="$test_root/extra"
 mkdir -p "$extra_dir/extra-pkg/.config/extra"
 printf 'extra\n' >"$extra_dir/extra-pkg/.config/extra/config"
@@ -380,7 +420,7 @@ fi
 
 tty_home="$test_root/tty-home"
 mkdir -p "$tty_home"
-case "$(/usr/bin/uname -s)" in
+case "$(command -p uname -s)" in
   Darwin)
     DOTFILES_HOME=$tty_home \
     FAKE_UNAME=Darwin \
@@ -400,5 +440,5 @@ case "$(/usr/bin/uname -s)" in
 esac
 assert_file_contains "$fake_log" "zsh|-l"
 
-printf 'PASS: config syntax, install, update, plugin update, idempotency, Linux/macOS branches\n'
+printf 'PASS: config syntax, install, update, plugin update, idempotency, fallbacks, Linux/macOS branches\n'
 
