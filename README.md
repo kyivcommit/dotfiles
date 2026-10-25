@@ -77,6 +77,12 @@ git clone https://github.com/kyivcommit/dotfiles.git ~/.dotfiles
 ~/.dotfiles/install.sh install
 ```
 
+Linux needs an `apt`-based distribution with `bash`, `git`, `curl`, `unzip` and
+`tar`; `sudo` is used only for packages `apt` provides. Neovim comes from its
+release binary, which needs glibc 2.34+ (Ubuntu 22.04+, Debian 12+). On older
+releases such as Ubuntu 18.04, `nvim` is skipped with a warning and everything
+else still installs; build Neovim from source if it is needed there.
+
 On macOS, Git and Zsh must already be available. Homebrew is needed if `stow`,
 `bat`, `nvim`, `zoxide`, or `yazi` is missing. If Git is missing, install the Command Line Tools first with
 `xcode-select --install`, then run:
